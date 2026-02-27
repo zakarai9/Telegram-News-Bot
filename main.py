@@ -12,8 +12,9 @@ GNEWS_API_KEY = os.environ.get("GNEWS_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def get_news():
-    # Fetch top 3 news articles in Technology or Sports. (lang=ar for Arabic)
-    url = f"https://gnews.io/api/v4/search?q=(تكنولوجيا OR ذكاء اصطناعي OR رياضة)&lang=ar&max=3&apikey={GNEWS_API_KEY}"
+    # Fetch top 10 news articles in requested topics. (lang=ar for Arabic)
+    query = '("إيران" OR "الشرق الأوسط" OR "الذكاء الاصطناعي" OR "استخدامات الذكاء" OR "المغرب" OR "تريندات")'
+    url = f"https://gnews.io/api/v4/search?q={query}&lang=ar&max=10&apikey={GNEWS_API_KEY}"
     try:
         response = requests.get(url)
         data = response.json()
@@ -34,6 +35,8 @@ def summarize_news(articles):
     
     summaries = []
     
+    import time
+    
     for index, article in enumerate(articles, 1):
         title = article.get("title", "")
         description = article.get("description", "")
@@ -51,18 +54,20 @@ def summarize_news(articles):
         
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-1.5-flash",
                 contents=prompt
             )
             summary_text = response.text.strip()
             msg = f"📰 *{title}*\n\n{summary_text}\n\n🔗 [قرا المزيد هنا]({url})"
             summaries.append(msg)
+            time.sleep(4) # To avoid Google GenAI free tier rate limits (15 RPM)
         except Exception as e:
             print(f"Error summarizing article {index}: {e}")
             summaries.append(f"📰 *{title}*\n\n(تعذر التلخيص بالذكاء الاصطناعي)\n\n🔗 [قرا المزيد هنا]({url})")
+            time.sleep(4)
             
     # Combine summaries separate by lines
-    final_message = "🔥 *أهم 3 أخبار فهاد الساعتين* 🔥\n\n➖➖➖➖➖➖➖➖\n\n"
+    final_message = "🔥 *أهم 10 أخبار فهاد الساعتين* 🔥\n\n➖➖➖➖➖➖➖➖\n\n"
     final_message += "\n\n➖➖➖➖➖➖➖➖\n\n".join(summaries)
     
     return final_message
